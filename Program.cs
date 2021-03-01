@@ -107,8 +107,8 @@ namespace XboxFinder
             var to = Configuration.GetSection("To").Get<EmailAddress>(); 
             
             var subject = $"Xbox Finder Alert - {status}";
-            var plainTextContent = $"We checked at {DateTime.Now.ToString()}\r\nBest Buy: {bestBuyHasIt}]\r\nTarget: {targetHasIt}";
-            var htmlContent = $"<strong>We checked at {DateTime.Now.ToString()}</strong><br>Best Buy: {bestBuyHasIt}]<br>Target: {targetHasIt}";
+            var plainTextContent = $"We checked at {DateTime.Now.ToString()}\r\nBest Buy: {bestBuyHasIt}\r\nTarget: {targetHasIt}";
+            var htmlContent = $"<strong>We checked at {DateTime.Now.ToString()}</strong><br>Best Buy: {bestBuyHasIt}<br>Target: {targetHasIt}";
             
             var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
             var response = await client.SendEmailAsync(msg);
