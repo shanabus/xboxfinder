@@ -17,8 +17,8 @@ namespace XboxFinder
         static void Main(string[] args)
         {
             var arguments = SplitArgs(args);
-            var playSound = arguments.ContainsKey("sound") && bool.Parse(arguments["sound"])? true : false;
-            var sendEmail = arguments.ContainsKey("email") && bool.Parse(arguments["email"])? true : false;
+            var playSound = arguments.ContainsKey("sound")? bool.Parse(arguments["sound"]) : true;
+            var sendEmail = arguments.ContainsKey("email")? bool.Parse(arguments["email"]) : true;
 
             var builder = new ConfigurationBuilder()
                 .SetBasePath(System.IO.Directory.GetCurrentDirectory())                
@@ -88,7 +88,7 @@ namespace XboxFinder
                 driver.Close();
                 tryCount--;
 
-                var sleep = arguments["timeBetween"] != null ? int.Parse(arguments["timeBetween"]) : 1800000;
+                var sleep = arguments.ContainsKey("timeBetween") ? int.Parse(arguments["timeBetween"]) : 1800000;
                 Thread.Sleep(sleep);
             }         
 
