@@ -17,8 +17,8 @@ namespace XboxFinder
         static void Main(string[] args)
         {
             var arguments = SplitArgs(args);
-            var playSound = arguments["sound"] != null && bool.Parse(arguments["sound"])? true : false;
-            var sendEmail = arguments["email"] != null && bool.Parse(arguments["email"])? true : false;
+            var playSound = arguments.ContainsKey("sound") && bool.Parse(arguments["sound"])? true : false;
+            var sendEmail = arguments.ContainsKey("email") && bool.Parse(arguments["email"])? true : false;
 
             var builder = new ConfigurationBuilder()
                 .SetBasePath(System.IO.Directory.GetCurrentDirectory())                
@@ -29,7 +29,7 @@ namespace XboxFinder
 
             Console.WriteLine("Checking for Xbox availability");
 
-            int tryCount = arguments["retries"] != null ? int.Parse(arguments["retries"]) : 24;
+            int tryCount = arguments.ContainsKey("retries")? int.Parse(arguments["retries"]) : 24;
 
             #region Do the work
 
@@ -39,7 +39,7 @@ namespace XboxFinder
                 
                 var url = "https://www.bestbuy.com/site/microsoft-xbox-series-x-1tb-console-black/6428324.p?skuId=6428324";
 
-                if (arguments["series"] != null && arguments["series"] == "S")
+                if (arguments.ContainsKey("series") && arguments["series"] == "S")
                 {
                     url = "https://www.bestbuy.com/site/microsoft-xbox-series-s-512-gb-all-digital-console-disc-free-gaming-white/6430277.p?skuId=6430277";
                 }                
