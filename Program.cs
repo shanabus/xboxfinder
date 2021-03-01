@@ -59,9 +59,11 @@ namespace XboxFinder
                     targetUrl = "https://www.target.com/p/xbox-series-s-console/-/A-80790842";
                 }
                 driver.Navigate().GoToUrl(targetUrl);
+                
+                Thread.Sleep(2000);
 
                 var targetStatusElement = driver.FindElementByXPath("//*[@id='viewport']/div[4]/div/div[2]/div[3]/div[1]/div/div/div");
-                var inStockTarget = targetStatusElement.Text != "Sold out";
+                var inStockTarget = targetStatusElement.Text != "Sold out" && targetStatusElement.Text != "Out of stock in stores near you";
                 
                 if (inStockBestBuy || inStockTarget)
                 {
