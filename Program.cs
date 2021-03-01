@@ -37,24 +37,27 @@ namespace XboxFinder
             {
                 var driver = new ChromeDriver();
                 
-                var url = "https://www.bestbuy.com/site/microsoft-xbox-series-x-1tb-console-black/6428324.p?skuId=6428324";
+                var bestBuyUrl = "https://www.bestbuy.com/site/microsoft-xbox-series-x-1tb-console-black/6428324.p?skuId=6428324";
 
                 if (arguments.ContainsKey("series") && arguments["series"] == "S")
                 {
-                    url = "https://www.bestbuy.com/site/microsoft-xbox-series-s-512-gb-all-digital-console-disc-free-gaming-white/6430277.p?skuId=6430277";
+                    bestBuyUrl = "https://www.bestbuy.com/site/microsoft-xbox-series-s-512-gb-all-digital-console-disc-free-gaming-white/6430277.p?skuId=6430277";
                 }                
 
-                driver.Navigate().GoToUrl(url);
+                driver.Navigate().GoToUrl(bestBuyUrl);
 
                 Thread.Sleep(2000);
 
                 var button = driver.FindElementByCssSelector(".fulfillment-add-to-cart-button button");
 
-                var text = button.Text;
+                var inStockBestBuy = button.Text == "Add to Cart";
+                                
+                driver.Navigate().GoToUrl("https://www.target.com/p/xbox-series-x-console/-/A-80790841");
 
-                Console.WriteLine(text);
-
-                if (text == "Add to Cart")
+                var targetStatusElement = driver.FindElementByXPath("//*[@id='viewport']/div[4]/div/div[2]/div[3]/div[1]/div/div/div");
+                var inStockTarget = targetStatusElement.Text != "Sold out";
+                
+                if (inStockBestBuy || inStockTarget)
                 {
                     Console.WriteLine("Its in stock!");
                     
@@ -65,7 +68,7 @@ namespace XboxFinder
 
                     if (sendEmail)
                     {
-                        var emailTask = Task.Run(() => SendEmailAsync("Found!", text));
+                        var emailTask = Task.Run(() => SendEmailAsync("Found!", inStockBestBuy, inStockTarget));
                         emailTask.Wait();                
                     }                    
                 }
@@ -80,11 +83,11 @@ namespace XboxFinder
 
                     if (sendEmail)
                     {
-                        var emailTask = Task.Run(() => SendEmailAsync("Not Available", text));
+                        var emailTask = Task.Run(() => SendEmailAsync("Not Available", inStockBestBuy, inStockTarget));
                         emailTask.Wait();
                     }
                 }
-                                        
+
                 driver.Close();
                 tryCount--;
 
@@ -95,7 +98,7 @@ namespace XboxFinder
             #endregion
         }
 
-        private static async Task SendEmailAsync(string status, string text)
+        private static async Task SendEmailAsync(string status, bool bestBuyHasIt, bool targetHasIt)
         {
             // create email message
             var apiKey = Configuration["SendGrid.ApiKey"];
@@ -103,9 +106,9 @@ namespace XboxFinder
             var from = Configuration.GetSection("From").Get<EmailAddress>();
             var to = Configuration.GetSection("To").Get<EmailAddress>(); 
             
-            var subject = "Xbox Finder Alert";
-            var plainTextContent = $"{status}\r\nWe checked at {DateTime.Now.ToString()}";
-            var htmlContent = $"{status}<br /><strong>We checked at {DateTime.Now.ToString()}</strong>";
+            var subject = $"Xbox Finder Alert - {status}";
+            var plainTextContent = $"We checked at {DateTime.Now.ToString()}\r\nBest Buy: {bestBuyHasIt}]\r\nTarget: {targetHasIt}";
+            var htmlContent = $"<strong>We checked at {DateTime.Now.ToString()}</strong><br>Best Buy: {bestBuyHasIt}]<br>Target: {targetHasIt}";
             
             var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
             var response = await client.SendEmailAsync(msg);
