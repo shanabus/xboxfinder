@@ -51,8 +51,14 @@ namespace XboxFinder
                 var button = driver.FindElementByCssSelector(".fulfillment-add-to-cart-button button");
 
                 var inStockBestBuy = button.Text == "Add to Cart";
-                                
-                driver.Navigate().GoToUrl("https://www.target.com/p/xbox-series-x-console/-/A-80790841");
+
+                var targetUrl = "https://www.target.com/p/xbox-series-x-console/-/A-80790841";
+
+                if (arguments.ContainsKey("series") && arguments["series"] == "S")
+                {                                
+                    targetUrl = "https://www.target.com/p/xbox-series-s-console/-/A-80790842";
+                }
+                driver.Navigate().GoToUrl(targetUrl);
 
                 var targetStatusElement = driver.FindElementByXPath("//*[@id='viewport']/div[4]/div/div[2]/div[3]/div[1]/div/div/div");
                 var inStockTarget = targetStatusElement.Text != "Sold out";
