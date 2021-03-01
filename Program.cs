@@ -1,10 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using NAudio.Wave;
-using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Support.PageObjects;
 using SendGrid;
 using SendGrid.Helpers.Mail;
 
@@ -12,29 +12,43 @@ namespace XboxFinder
 {
     class Program
     {
-
-        [FindsBy(How = How.CssSelector, Using = ".fulfillment-add-to-cart-button button")]
-        public IWebElement PurchaseButton { get; set; }
+        public static IConfiguration Configuration { get; set; }
 
         static void Main(string[] args)
         {
+            var arguments = SplitArgs(args);
+            var playSound = arguments["sound"] != null && bool.Parse(arguments["sound"])? true : false;
+            var sendEmail = arguments["email"] != null && bool.Parse(arguments["email"])? true : false;
+
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(System.IO.Directory.GetCurrentDirectory())                
+                .AddUserSecrets<Program>()
+                .AddJsonFile("appsettings.json");
+            
+            Configuration = builder.Build();
+
             Console.WriteLine("Checking for Xbox availability");
-            int tryCount = 24;
+
+            int tryCount = arguments["retries"] != null ? int.Parse(arguments["retries"]) : 24;
+
+            #region Do the work
 
             while(tryCount > 0)
             {
                 var driver = new ChromeDriver();
                 
                 var url = "https://www.bestbuy.com/site/microsoft-xbox-series-x-1tb-console-black/6428324.p?skuId=6428324";
-                //var url = "https://www.bestbuy.com/site/microsoft-xbox-series-s-512-gb-all-digital-console-disc-free-gaming-white/6430277.p?skuId=6430277";
+
+                if (arguments["series"] != null && arguments["series"] == "S")
+                {
+                    url = "https://www.bestbuy.com/site/microsoft-xbox-series-s-512-gb-all-digital-console-disc-free-gaming-white/6430277.p?skuId=6430277";
+                }                
 
                 driver.Navigate().GoToUrl(url);
 
                 Thread.Sleep(2000);
 
                 var button = driver.FindElementByCssSelector(".fulfillment-add-to-cart-button button");
-
-                // button.Click();
 
                 var text = button.Text;
 
@@ -43,37 +57,56 @@ namespace XboxFinder
                 if (text == "Add to Cart")
                 {
                     Console.WriteLine("Its in stock!");
-                    PlaySound("xboxfound.wav");
+                    
+                    if (playSound)
+                    {
+                        PlaySound("xboxfound.wav");
+                    }
 
-                    var emailTask = Task.Run(() => SendEmailAsync("Found!", text));
-                    emailTask.Wait();                
+                    if (sendEmail)
+                    {
+                        var emailTask = Task.Run(() => SendEmailAsync("Found!", text));
+                        emailTask.Wait();                
+                    }                    
                 }
                 else
                 {
-                    Console.WriteLine("No bueno");     
-                    PlaySound("noxbox.wav"); 
+                    Console.WriteLine("Out of stock");     
 
-                    var emailTask = Task.Run(() => SendEmailAsync("Not Available", text));
-                    emailTask.Wait();
+                    if (playSound)
+                    {
+                        PlaySound("noxbox.wav"); 
+                    }
+
+                    if (sendEmail)
+                    {
+                        var emailTask = Task.Run(() => SendEmailAsync("Not Available", text));
+                        emailTask.Wait();
+                    }
                 }
                                         
                 driver.Close();
                 tryCount--;
-                Thread.Sleep(1798000);
-            }            
+
+                var sleep = arguments["timeBetween"] != null ? int.Parse(arguments["timeBetween"]) : 1800000;
+                Thread.Sleep(sleep);
+            }         
+
+            #endregion
         }
 
         private static async Task SendEmailAsync(string status, string text)
         {
             // create email message
-            //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
-            var apiKey = "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";
+            var apiKey = Configuration["SendGrid.ApiKey"];
             var client = new SendGridClient(apiKey);
-            var from = new EmailAddress("me@shanesievers.com", "Shane Sievers");
+            var from = Configuration.GetSection("From").Get<EmailAddress>();
+            var to = Configuration.GetSection("To").Get<EmailAddress>(); 
+            
             var subject = "Xbox Finder Alert";
-            var to = new EmailAddress("shanabus@gmail.com", "Shane Sievers");
             var plainTextContent = $"{status}\r\nWe checked at {DateTime.Now.ToString()}";
             var htmlContent = $"{status}<br /><strong>We checked at {DateTime.Now.ToString()}</strong>";
+            
             var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
             var response = await client.SendEmailAsync(msg);
         }
@@ -90,6 +123,23 @@ namespace XboxFinder
                     Thread.Sleep(1000);
                 }
             }        
+        }
+
+        private static Dictionary<string, string> SplitArgs(string[] args)
+        {
+            var arguments = new Dictionary<string, string>();
+
+            foreach (string argument in args)
+            {
+                string[] splitted = argument.Split('=');
+
+                if (splitted.Length == 2)
+                {
+                    arguments[splitted[0]] = splitted[1];
+                }
+            }
+
+            return arguments;
         }
     }
 }
